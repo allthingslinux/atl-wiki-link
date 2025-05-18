@@ -2,7 +2,7 @@
 name = "discord-mediawiki-bot"
 version = "0.1.0"
 description = "Discord Bot for MediaWiki Verification"
-authors = ["Your Name"]
+authors = ["All Things Linux"]
 readme = "README.md"
 packages = [{ include = "bot" }]
 
