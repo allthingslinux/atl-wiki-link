@@ -318,64 +318,104 @@ async def do_verify(ctx, user):
 
 # --- SLASH & TEXT COMMANDS ---
 
-@tree.command(name="verify", description="Generate a verification link to connect your MediaWiki account")
-async def slash_verify(interaction: discord.Interaction):
-    await do_verify(interaction, interaction.user)
-
-@bot.command(name="verify", help="Generate a verification link to connect your MediaWiki account")
-async def cmd_verify(ctx):
-    await do_verify(ctx, ctx.author)
-
 @tree.command(name="unverify", description="Remove your verification link and data from the system")
 async def slash_unverify(interaction: discord.Interaction):
     user_id = interaction.user.id
+    removed = False
     with db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM links WHERE discord_id = %s RETURNING *", (user_id,))
-            if cur.rowcount == 0:
-                return await interaction.response.send_message("ℹ You are not currently verified.", ephemeral=True)
-            conn.commit()
-            processed_users.discard(user_id)
-    await interaction.response.send_message("✅ Your verification has been removed.", ephemeral=True)
+            removed = cur.rowcount > 0
+            if removed:
+                conn.commit()
+                processed_users.discard(user_id)
+
+    if removed:
+        for guild in bot.guilds:
+            member = guild.get_member(user_id)
+            if member:
+                role = discord.utils.get(guild.roles, id=WIKI_AUTHOR_ROLE_ID)
+                if role and role in member.roles:
+                    await member.remove_roles(role, reason="User unverifying")
+        await interaction.response.send_message("✅ Your verification has been removed.", ephemeral=True)
+    else:
+        await interaction.response.send_message("ℹ You are not currently verified.", ephemeral=True)
 
 @bot.command(name="unverify", help="Remove your own verification entry from the database")
 async def cmd_unverify(ctx):
     user_id = ctx.author.id
+    removed = False
     with db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM links WHERE discord_id = %s RETURNING *", (user_id,))
-            if cur.rowcount == 0:
-                return await ctx.send("ℹ You are not currently verified.")
-            conn.commit()
-            processed_users.discard(user_id)
-    await ctx.send("✅ Your verification has been removed.")
+            removed = cur.rowcount > 0
+            if removed:
+                conn.commit()
+                processed_users.discard(user_id)
+
+    if removed:
+        for guild in bot.guilds:
+            member = guild.get_member(user_id)
+            if member:
+                role = discord.utils.get(guild.roles, id=WIKI_AUTHOR_ROLE_ID)
+                if role and role in member.roles:
+                    await member.remove_roles(role, reason="User unverifying")
+        await ctx.send("✅ Your verification has been removed.")
+    else:
+        await ctx.send("ℹ You are not currently verified.")
+
 
 @tree.command(name="deleteid", description="Admin: Delete a user's verification by Discord ID")
 @app_commands.describe(userid="The Discord user ID to delete")
 async def slash_deleteid(interaction: discord.Interaction, userid: int):
     if not any(role.id in ALLOWED_ROLE_IDS for role in interaction.user.roles):
         return await interaction.response.send_message("🚫 You do not have permission.", ephemeral=True)
+
+    removed = False
     with db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM links WHERE discord_id = %s RETURNING *", (userid,))
-            if cur.rowcount == 0:
-                return await interaction.response.send_message("ℹ No entry found.", ephemeral=True)
-            conn.commit()
-            processed_users.discard(userid)
-    await interaction.response.send_message(f"🗑 Entry for ID `{userid}` removed.", ephemeral=True)
+            removed = cur.rowcount > 0
+            if removed:
+                conn.commit()
+                processed_users.discard(userid)
+
+    if removed:
+        for guild in bot.guilds:
+            member = guild.get_member(userid)
+            if member:
+                role = discord.utils.get(guild.roles, id=WIKI_AUTHOR_ROLE_ID)
+                if role and role in member.roles:
+                    await member.remove_roles(role, reason="Admin deleteid command")
+        await interaction.response.send_message(f"🗑 Entry for ID `{userid}` removed.", ephemeral=True)
+    else:
+        await interaction.response.send_message("ℹ No entry found.", ephemeral=True)
 
 @bot.command(name="deleteid", help="Admin: Delete a user's verification by Discord ID")
 async def cmd_deleteid(ctx, userid: int):
     if not any(role.id in ALLOWED_ROLE_IDS for role in ctx.author.roles):
         return await ctx.send("🚫 You do not have permission.")
+
+    removed = False
     with db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM links WHERE discord_id = %s RETURNING *", (userid,))
-            if cur.rowcount == 0:
-                return await ctx.send("ℹ No entry found.")
-            conn.commit()
-            processed_users.discard(userid)
-    await ctx.send(f"🗑 Entry for ID `{userid}` removed.")
+            removed = cur.rowcount > 0
+            if removed:
+                conn.commit()
+                processed_users.discard(userid)
+
+    if removed:
+        for guild in bot.guilds:
+            member = guild.get_member(userid)
+            if member:
+                role = discord.utils.get(guild.roles, id=WIKI_AUTHOR_ROLE_ID)
+                if role and role in member.roles:
+                    await member.remove_roles(role, reason="Admin deleteid command")
+        await ctx.send(f"🗑 Entry for ID `{userid}` removed.")
+    else:
+        await ctx.send("ℹ No entry found.")
+
 
 @tree.command(name="check_verified", description="Admin: Show all currently verified users")
 async def slash_check_verified(interaction: discord.Interaction):
