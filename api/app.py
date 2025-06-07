@@ -1,6 +1,9 @@
 import os
-import secrets
-from flask import Flask, request, redirect, session, render_template_string
+import logging
+import datetime
+import jwt
+from markupsafe import escape
+from flask import Flask, request, redirect, jsonify, abort, render_template_string, session
 from requests_oauthlib import OAuth1Session
 from dotenv import load_dotenv
 from psycopg2 import connect
@@ -16,71 +19,164 @@ CONSUMER_SECRET = os.getenv("MW_CONSUMER_SECRET")
 MW_API_URL = os.getenv("MW_API_URL")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
 
+JWT_SECRET = os.getenv("JWT_SECRET", app.secret_key)
+JWT_ALGORITHM = "HS256"
+JWT_EXP_DELTA_SECONDS = 600  # 10 minutes
+
+if not all([CONSUMER_KEY, CONSUMER_SECRET, MW_API_URL, CALLBACK_URL, app.secret_key]):
+    raise RuntimeError("One or more required environment variables are missing.")
+
+BASE_URL = MW_API_URL.removesuffix('/api.php')
+
+request_token_url = f"{BASE_URL}/Special:OAuth/initiate"
+access_token_url = f"{BASE_URL}/Special:OAuth/token"
+authorize_url = f"{BASE_URL}/Special:OAuth/authorize"
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+logging.debug(f"Using CONSUMER_KEY: {CONSUMER_KEY}")
+
+
 def db_conn():
-    return connect(os.getenv("DATABASE_URL"), cursor_factory=RealDictCursor)
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL environment variable missing")
+    return connect(db_url, cursor_factory=RealDictCursor)
+
+
+def create_jwt(payload: dict) -> str:
+    payload_copy = payload.copy()
+    payload_copy['exp'] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=JWT_EXP_DELTA_SECONDS)
+    token = jwt.encode(payload_copy, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token if isinstance(token, str) else token.decode('utf-8')
+
+
+def decode_jwt(token: str) -> dict:
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        abort(400, "Verification link has expired. Please restart the verification process.")
+    except jwt.InvalidTokenError:
+        abort(400, "Invalid verification token. Please restart the verification process.")
+
+
+def error_page(title: str, message: str):
+    return render_template_string(f"""
+    <html>
+        <head><title>{escape(title)}</title></head>
+        <body>
+            <h2>{escape(title)}</h2>
+            <p>{escape(message)}</p>
+        </body>
+    </html>
+    """)
+
 
 @app.route("/verify")
 def verify():
-    token = request.args.get("token")
-    if not token:
-        return "Invalid token."
+    try:
+        token = request.args.get("token")
+        if not token:
+            return error_page("Missing Token", "Verification token is missing from the request.")
 
-    with db_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM links WHERE token = %s AND verified = FALSE", (token,))
-            user_row = cur.fetchone()
-            if not user_row:
-                return "Invalid or expired token."
+        oauth = OAuth1Session(CONSUMER_KEY, client_secret=CONSUMER_SECRET, callback_uri='oob')
+        fetch_response = oauth.fetch_request_token(request_token_url)
 
-    session["token"] = token
-    mw = OAuth1Session(CONSUMER_KEY, client_secret=CONSUMER_SECRET, callback_uri=CALLBACK_URL)
-    fetch_response = mw.fetch_request_token(f"{MW_API_URL}?action=initiateoauth&format=json")
+        resource_owner_key = fetch_response.get('oauth_token')
+        resource_owner_secret = fetch_response.get('oauth_token_secret')
 
-    session["oauth_token"] = fetch_response.get("oauth_token")
-    session["oauth_token_secret"] = fetch_response.get("oauth_token_secret")
+        if not resource_owner_key or not resource_owner_secret:
+            raise ValueError("Missing tokens in fetch response")
 
-    authorization_url = mw.authorization_url(f"{MW_API_URL}?action=authorizeoauth")
-    return redirect(authorization_url)
+        # Store secret and token in session for later retrieval
+        session['request_token_secret'] = resource_owner_secret
+        session['token'] = token
+        session['request_token_key'] = resource_owner_key
+
+        # Create callback URL (no extra params)
+        callback_url = CALLBACK_URL
+
+        oauth = OAuth1Session(
+            CONSUMER_KEY,
+            client_secret=CONSUMER_SECRET,
+            resource_owner_key=resource_owner_key,
+            resource_owner_secret=resource_owner_secret,
+            callback_uri=callback_url
+        )
+        authorization_url = oauth.authorization_url(authorize_url)
+        return redirect(authorization_url)
+
+    except Exception as e:
+        logging.exception("Error during /verify")
+        return f"OAuth error during request token fetch: {e}", 500
+
 
 @app.route("/verify/callback")
 def callback():
-    token = session.get("token")
     oauth_token = request.args.get("oauth_token")
     verifier = request.args.get("oauth_verifier")
 
-    if not token or not oauth_token or not verifier:
-        return "Invalid session."
+    if not oauth_token or not verifier:
+        return error_page("OAuth Verification Failed", "Missing OAuth parameters.")
 
-    mw = OAuth1Session(
-        CONSUMER_KEY,
-        client_secret=CONSUMER_SECRET,
-        resource_owner_key=session["oauth_token"],
-        resource_owner_secret=session["oauth_token_secret"],
-        verifier=verifier,
-    )
+    stored_token_key = session.get('request_token_key')
+    stored_token_secret = session.get('request_token_secret')
+    token = session.get('token')
 
-    mw_tokens = mw.fetch_access_token(f"{MW_API_URL}?action=completeoauth&format=json")
-    mw = OAuth1Session(
-        CONSUMER_KEY,
-        client_secret=CONSUMER_SECRET,
-        resource_owner_key=mw_tokens["oauth_token"],
-        resource_owner_secret=mw_tokens["oauth_token_secret"]
-    )
+    if not stored_token_key or not stored_token_secret or not token:
+        return error_page("OAuth Verification Failed", "Session expired or missing data. Please restart verification.")
 
-    identity = mw.get(f"{MW_API_URL}?action=query&meta=userinfo&format=json").json()
-    username = identity["query"]["userinfo"]["name"]
+    if oauth_token != stored_token_key:
+        return error_page("OAuth Verification Failed", "OAuth token mismatch. Try again.")
 
-    with db_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE links SET verified = TRUE, mediawiki_username = %s WHERE token = %s", (username, token))
-            conn.commit()
+    try:
+        oauth = OAuth1Session(
+            CONSUMER_KEY,
+            client_secret=CONSUMER_SECRET,
+            resource_owner_key=stored_token_key,
+            resource_owner_secret=stored_token_secret,
+            verifier=verifier
+        )
+        access_token_response = oauth.fetch_access_token(access_token_url)
+    except Exception as e:
+        logging.exception("OAuth token exchange failed")
+        return error_page("OAuth Token Exchange Failed", str(e))
 
-    return render_template_string("""
+    try:
+        oauth = OAuth1Session(
+            CONSUMER_KEY,
+            client_secret=CONSUMER_SECRET,
+            resource_owner_key=access_token_response.get("oauth_token"),
+            resource_owner_secret=access_token_response.get("oauth_token_secret")
+        )
+        identity_response = oauth.get(f"{MW_API_URL}?action=query&meta=userinfo&format=json").json()
+        logging.debug(f"IDENTITY RESPONSE : {identity_response}")
+        username = identity_response["query"]["userinfo"]["name"]
+    except Exception as e:
+        logging.exception("Failed to fetch user info")
+        return error_page("Failed to Fetch User Info", str(e))
+
+    try:
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE links SET verified = TRUE, mediawiki_username = %s WHERE token = %s",
+                    (username, token)
+                )
+                conn.commit()
+    except Exception as e:
+        logging.exception("Database update failed")
+        return error_page("Database Update Failed", str(e))
+
+    return render_template_string(f"""
     <html>
         <head><title>Verification Complete</title></head>
         <body>
             <h2>Verification Complete</h2>
-            <p>Welcome, {{ username }}. You have linked your account.</p>
+            <p>Welcome, {escape(username)}. You have linked your account successfully. You may close this tab</p>
         </body>
     </html>
-    """, username=username)
+    """)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True, port=5000)
