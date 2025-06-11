@@ -1,9 +1,17 @@
 import os
 import logging
 import datetime
+from typing import Dict, Any
 import jwt
 from markupsafe import escape
-from flask import Flask, request, redirect, jsonify, abort, render_template_string, session
+from flask import (
+    Flask,
+    request,
+    redirect,
+    abort,
+    render_template_string,
+    session,
+)
 from requests_oauthlib import OAuth1Session
 from dotenv import load_dotenv
 from psycopg2 import connect
@@ -20,19 +28,32 @@ MW_API_URL = os.getenv("MW_API_URL")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
 
 JWT_SECRET = os.getenv("JWT_SECRET", app.secret_key)
+assert JWT_SECRET is not None  # JWT_SECRET must be set
 JWT_ALGORITHM = "HS256"
 JWT_EXP_DELTA_SECONDS = 600  # 10 minutes
 
-if not all([CONSUMER_KEY, CONSUMER_SECRET, MW_API_URL, CALLBACK_URL, app.secret_key]):
+if not all(
+    [
+        CONSUMER_KEY,
+        CONSUMER_SECRET,
+        MW_API_URL,
+        CALLBACK_URL,
+        app.secret_key,
+        JWT_SECRET,
+    ]
+):
     raise RuntimeError("One or more required environment variables are missing.")
 
-BASE_URL = MW_API_URL.removesuffix('/api.php')
+assert JWT_SECRET is not None  # For type checker
+
+assert MW_API_URL is not None  # For type checker
+BASE_URL = MW_API_URL.removesuffix("/api.php")
 
 request_token_url = f"{BASE_URL}/Special:OAuth/initiate"
 access_token_url = f"{BASE_URL}/Special:OAuth/token"
 authorize_url = f"{BASE_URL}/Special:OAuth/authorize"
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logging.debug(f"Using CONSUMER_KEY: {CONSUMER_KEY}")
 
 
@@ -43,20 +64,29 @@ def db_conn():
     return connect(db_url, cursor_factory=RealDictCursor)
 
 
-def create_jwt(payload: dict) -> str:
+def create_jwt(payload: Dict[str, Any]) -> str:
     payload_copy = payload.copy()
-    payload_copy['exp'] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=JWT_EXP_DELTA_SECONDS)
-    token = jwt.encode(payload_copy, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    return token if isinstance(token, str) else token.decode('utf-8')
+    payload_copy["exp"] = datetime.datetime.now(
+        datetime.timezone.utc
+    ) + datetime.timedelta(seconds=JWT_EXP_DELTA_SECONDS)
+    # Type cast to satisfy type checker - JWT_SECRET is validated at startup
+    token = jwt.encode(payload_copy, str(JWT_SECRET), algorithm=JWT_ALGORITHM)
+    return token if isinstance(token, str) else token.decode("utf-8")
 
 
-def decode_jwt(token: str) -> dict:
+def decode_jwt(token: str) -> Dict[str, Any]:
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        # Type cast to satisfy type checker - JWT_SECRET is validated at startup
+        return jwt.decode(token, str(JWT_SECRET), algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError:
-        abort(400, "Verification link has expired. Please restart the verification process.")
+        abort(
+            400,
+            "Verification link has expired. Please restart the verification process.",
+        )
     except jwt.InvalidTokenError:
-        abort(400, "Invalid verification token. Please restart the verification process.")
+        abort(
+            400, "Invalid verification token. Please restart the verification process."
+        )
 
 
 def error_page(title: str, message: str):
@@ -76,21 +106,25 @@ def verify():
     try:
         token = request.args.get("token")
         if not token:
-            return error_page("Missing Token", "Verification token is missing from the request.")
+            return error_page(
+                "Missing Token", "Verification token is missing from the request."
+            )
 
-        oauth = OAuth1Session(CONSUMER_KEY, client_secret=CONSUMER_SECRET, callback_uri='oob')
-        fetch_response = oauth.fetch_request_token(request_token_url)
+        oauth = OAuth1Session(
+            CONSUMER_KEY, client_secret=CONSUMER_SECRET, callback_uri="oob"
+        )
+        fetch_response = oauth.fetch_request_token(request_token_url)  # type: ignore[misc]
 
-        resource_owner_key = fetch_response.get('oauth_token')
-        resource_owner_secret = fetch_response.get('oauth_token_secret')
+        resource_owner_key = fetch_response.get("oauth_token")
+        resource_owner_secret = fetch_response.get("oauth_token_secret")
 
         if not resource_owner_key or not resource_owner_secret:
             raise ValueError("Missing tokens in fetch response")
 
         # Store secret and token in session for later retrieval
-        session['request_token_secret'] = resource_owner_secret
-        session['token'] = token
-        session['request_token_key'] = resource_owner_key
+        session["request_token_secret"] = resource_owner_secret
+        session["token"] = token
+        session["request_token_key"] = resource_owner_key
 
         # Create callback URL (no extra params)
         callback_url = CALLBACK_URL
@@ -100,9 +134,15 @@ def verify():
             client_secret=CONSUMER_SECRET,
             resource_owner_key=resource_owner_key,
             resource_owner_secret=resource_owner_secret,
-            callback_uri=callback_url
+            callback_uri=callback_url,
         )
-        authorization_url = oauth.authorization_url(authorize_url)
+        try:
+            authorization_url = oauth.authorization_url(authorize_url)  # type: ignore[misc]
+        except Exception as e:
+            logging.exception("Failed to generate authorization URL")
+            return error_page(
+                "OAuth Error", f"Failed to generate authorization URL: {e}"
+            )
         return redirect(authorization_url)
 
     except Exception as e:
@@ -118,15 +158,20 @@ def callback():
     if not oauth_token or not verifier:
         return error_page("OAuth Verification Failed", "Missing OAuth parameters.")
 
-    stored_token_key = session.get('request_token_key')
-    stored_token_secret = session.get('request_token_secret')
-    token = session.get('token')
+    stored_token_key = session.get("request_token_key")
+    stored_token_secret = session.get("request_token_secret")
+    token = session.get("token")
 
     if not stored_token_key or not stored_token_secret or not token:
-        return error_page("OAuth Verification Failed", "Session expired or missing data. Please restart verification.")
+        return error_page(
+            "OAuth Verification Failed",
+            "Session expired or missing data. Please restart verification.",
+        )
 
     if oauth_token != stored_token_key:
-        return error_page("OAuth Verification Failed", "OAuth token mismatch. Try again.")
+        return error_page(
+            "OAuth Verification Failed", "OAuth token mismatch. Try again."
+        )
 
     try:
         oauth = OAuth1Session(
@@ -134,9 +179,9 @@ def callback():
             client_secret=CONSUMER_SECRET,
             resource_owner_key=stored_token_key,
             resource_owner_secret=stored_token_secret,
-            verifier=verifier
+            verifier=verifier,
         )
-        access_token_response = oauth.fetch_access_token(access_token_url)
+        access_token_response = oauth.fetch_access_token(access_token_url)  # type: ignore[misc]
     except Exception as e:
         logging.exception("OAuth token exchange failed")
         return error_page("OAuth Token Exchange Failed", str(e))
@@ -146,9 +191,11 @@ def callback():
             CONSUMER_KEY,
             client_secret=CONSUMER_SECRET,
             resource_owner_key=access_token_response.get("oauth_token"),
-            resource_owner_secret=access_token_response.get("oauth_token_secret")
+            resource_owner_secret=access_token_response.get("oauth_token_secret"),
         )
-        identity_response = oauth.get(f"{MW_API_URL}?action=query&meta=userinfo&format=json").json()
+        identity_response = oauth.get(
+            f"{MW_API_URL}?action=query&meta=userinfo&format=json"
+        ).json()
         logging.debug(f"IDENTITY RESPONSE : {identity_response}")
         username = identity_response["query"]["userinfo"]["name"]
     except Exception as e:
@@ -160,7 +207,7 @@ def callback():
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE links SET verified = TRUE, mediawiki_username = %s WHERE token = %s",
-                    (username, token)
+                    (username, token),
                 )
                 conn.commit()
     except Exception as e:
