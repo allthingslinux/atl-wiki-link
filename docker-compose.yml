@@ -1,5 +1,5 @@
 services:
-# 
+
   db:
     image: postgres:17.5
     container_name: wiki-link-db
@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: wiki-link-db
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - wiki-link-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - wiki-link
+      - wiki-link-network
 
   bot:
     build:
@@ -28,20 +28,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - DATABASE_URL=postgresql://wiki-link-user:password@wiki-link-db:5432/wiki-link-db
-      - VERIFICATION_URL=${VERIFICATION_URL:-http://localhost:5000/verify}
-      - WIKI_AUTHOR_ROLE_ID=${WIKI_AUTHOR_ROLE_ID}
-      - ALLOWED_ROLE_IDS=${ALLOWED_ROLE_IDS}
-      - DISCORD_PREFIX=${DISCORD_PREFIX:-"w$"}
+    env_file:
+      - .env
     volumes:
       - ./bot:/app/bot
       - ./pyproject.toml:/app/pyproject.toml
       - ./poetry.lock:/app/poetry.lock
     restart: unless-stopped
     networks:
-      - wiki-link
+      - wiki-link-network
     develop:
       watch:
         - action: sync
@@ -60,14 +55,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
-      - MW_CONSUMER_KEY=${MW_CONSUMER_KEY}
-      - MW_CONSUMER_SECRET=${MW_CONSUMER_SECRET}
-      - MW_API_URL=${MW_API_URL}
-      - CALLBACK_URL=${CALLBACK_URL:-http://localhost:5000/verify/callback}
-      - DATABASE_URL=postgresql://wiki-link-user:password@db:5432/wiki-link-db
-      - JWT_SECRET=${JWT_SECRET}
+    env_file:
+      - .env
     ports:
       - "5000:5000"
     volumes:
@@ -76,7 +65,7 @@ services:
       - ./poetry.lock:/app/poetry.lock
     restart: unless-stopped
     networks:
-      - wiki-link
+      - wiki-link-network
     develop:
       watch:
         - action: sync
@@ -88,9 +77,10 @@ services:
           path: ./poetry.lock
 
 networks:
-  wiki-link:
-    name: wiki-link
+  wiki-link-network:
+    name: wiki-link-network
     driver: bridge
 
 volumes:
-  db_data: 
+  wiki-link-data:
+    name: wiki-link-data

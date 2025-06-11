@@ -88,7 +88,12 @@ JWT_SECRET=your_jwt_secret_key_here
 # API URLs (adjust for production)
 VERIFICATION_URL=http://localhost:5000/verify
 CALLBACK_URL=http://localhost:5000/verify/callback
+
+# Database URL (uses Docker service name 'db')
+DATABASE_URL=postgresql://wiki-link-user:password@db:5432/wiki-link-db
 ```
+
+> **Note**: The database URL is automatically configured for Docker. Only change if using external database.
 
 ### 3. Launch with Docker
 
