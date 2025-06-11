@@ -1,0 +1,33 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install Poetry
+RUN pip install poetry
+
+# Configure poetry to not create virtual environment
+RUN poetry config virtualenvs.create false
+
+# Install dependencies (including dev dependencies for hot reloading)
+RUN poetry install --no-root
+
+# Copy bot source code
+COPY bot/ ./bot/
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app
+RUN chown -R app:app /app
+USER app
+
+# Run the bot with watchdog for hot reloading in development
+# Use watchmedo to monitor file changes and restart the bot
+CMD ["watchmedo", "auto-restart", "--directory=./bot", "--pattern=*.py", "--recursive", "--", "python", "-m", "bot.main"] 

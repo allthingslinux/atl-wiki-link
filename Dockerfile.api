@@ -1,0 +1,39 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install Poetry
+RUN pip install poetry
+
+# Configure poetry to not create virtual environment
+RUN poetry config virtualenvs.create false
+
+# Install dependencies (including dev dependencies for hot reloading)
+RUN poetry install --no-root
+
+# Copy API source code
+COPY api/ ./api/
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app
+RUN chown -R app:app /app
+USER app
+
+# Expose port
+EXPOSE 5000
+
+# Set Flask environment for development with hot reloading
+ENV FLASK_ENV=development
+ENV FLASK_DEBUG=1
+
+# Run the API with Flask development server for hot reloading
+CMD ["python", "-m", "flask", "--app", "api.app", "run", "--host=0.0.0.0", "--port=5000", "--reload"] 

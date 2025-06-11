@@ -1,0 +1,96 @@
+services:
+# 
+  db:
+    image: postgres:17.5
+    container_name: wiki-link-db
+    environment:
+      POSTGRES_USER: wiki-link-user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: wiki-link-db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wiki-link-user -d wiki-link-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wiki-link
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: wiki-link-bot
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DATABASE_URL=postgresql://wiki-link-user:password@wiki-link-db:5432/wiki-link-db
+      - VERIFICATION_URL=${VERIFICATION_URL:-http://localhost:5000/verify}
+      - WIKI_AUTHOR_ROLE_ID=${WIKI_AUTHOR_ROLE_ID}
+      - ALLOWED_ROLE_IDS=${ALLOWED_ROLE_IDS}
+      - DISCORD_PREFIX=${DISCORD_PREFIX:-"w$"}
+    volumes:
+      - ./bot:/app/bot
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+    restart: unless-stopped
+    networks:
+      - wiki-link
+    develop:
+      watch:
+        - action: sync
+          path: ./bot
+          target: /app/bot
+        - action: rebuild
+          path: ./pyproject.toml
+        - action: rebuild
+          path: ./poetry.lock
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: wiki-link-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+      - MW_CONSUMER_KEY=${MW_CONSUMER_KEY}
+      - MW_CONSUMER_SECRET=${MW_CONSUMER_SECRET}
+      - MW_API_URL=${MW_API_URL}
+      - CALLBACK_URL=${CALLBACK_URL:-http://localhost:5000/verify/callback}
+      - DATABASE_URL=postgresql://wiki-link-user:password@db:5432/wiki-link-db
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./api:/app/api
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+    restart: unless-stopped
+    networks:
+      - wiki-link
+    develop:
+      watch:
+        - action: sync
+          path: ./api
+          target: /app/api
+        - action: rebuild
+          path: ./pyproject.toml
+        - action: rebuild
+          path: ./poetry.lock
+
+networks:
+  wiki-link:
+    name: wiki-link
+    driver: bridge
+
+volumes:
+  db_data: 
