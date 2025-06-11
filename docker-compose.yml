@@ -1,19 +1,22 @@
 services:
-
   db:
     image: postgres:17.5
     container_name: wiki-link-db
     environment:
-      POSTGRES_USER: wiki-link-user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: wiki-link-db
+      POSTGRES_USER: ${POSTGRES_USER:-wiki-link-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-wiki-link-db}
     volumes:
       - wiki-link-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wiki-link-user -d wiki-link-db"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-wiki-link-user} -d ${POSTGRES_DB:-wiki-link-db}',
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -58,7 +61,7 @@ services:
     env_file:
       - .env
     ports:
-      - "5000:5000"
+      - '5000:5000'
     volumes:
       - ./api:/app/api
       - ./pyproject.toml:/app/pyproject.toml
