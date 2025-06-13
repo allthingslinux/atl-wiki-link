@@ -39,7 +39,7 @@ DARK_MODE_TEMPLATE = """
         <title>{{ title }}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body {{
+            body {
                 background: #181a1b;
                 color: #e8e6e3;
                 font-family: 'Segoe UI', 'Arial', sans-serif;
@@ -49,8 +49,8 @@ DARK_MODE_TEMPLATE = """
                 display: flex;
                 align-items: center;
                 justify-content: center;
-            }}
-            .container {{
+            }
+            .container {
                 background: #23272a;
                 border-radius: 12px;
                 box-shadow: 0 4px 24px rgba(0,0,0,0.5);
@@ -58,21 +58,21 @@ DARK_MODE_TEMPLATE = """
                 max-width: 400px;
                 width: 100%;
                 text-align: center;
-            }}
-            h2 {{
+            }
+            h2 {
                 margin-top: 0;
                 color: #8ec07c;
                 font-weight: 600;
-            }}
-            p {{
+            }
+            p {
                 color: #e8e6e3;
                 margin-bottom: 0;
-            }}
-            @media (max-width: 500px) {{
-                .container {{
+            }
+            @media (max-width: 500px) {
+                .container {
                     padding: 1.5rem 0.5rem;
-                }}
-            }}
+                }
+            }
         </style>
     </head>
     <body>
