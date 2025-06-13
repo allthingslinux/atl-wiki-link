@@ -116,8 +116,9 @@ class VerificationStateMachine:
                 "**Next steps:**\n"
                 "1. Check your DMs for the verification link\n"
                 "2. Click the link to verify your MediaWiki account\n"
-                "3. You'll automatically receive the wiki editor role\n\n"
-                "⏰ The link expires in 10 minutes.",
+                "3. If you meet the [requirements](https://atl.wiki/Atl.wiki:Discord_Linking), you'll automatically receive the wiki editor role\n\n"
+                "⏰ The link expires in 10 minutes.\n"
+                "🔒 **Do not share this link with anyone, including ATL staff.**",
                 user=context.user,
             )
         else:
@@ -150,8 +151,8 @@ class VerificationStateMachine:
                     embed = WikiEmbeds.success(
                         "Already Verified",
                         "Your Discord account is already linked to a MediaWiki account.\n\n"
-                        "✅ You have wiki editing privileges!\n"
-                        "📝 You can contribute to the wiki anytime.",
+                        "🔗 To unlink your account at anytime you can use `/unverify`.\n"
+                        "📝 If you are missing the role and meet the [requirements](https://atl.wiki/Atl.wiki:Discord_Linking), you can unverify and reverify to receive it.",
                         user=context.user,
                     )
                     await context.response_handler(embed)
@@ -217,7 +218,8 @@ class VerificationStateMachine:
                         "Verification Pending",
                         "You already have a pending verification request.\n\n"
                         "📬 Please check your DMs for the verification link.\n"
-                        "⏰ If you can't find it, please wait an hour and try again.",
+                        "⏰ If you can't find it, please wait an hour and try again.\n"
+                        "⚠️ If you still have issues, please contact a member of the wiki team.",
                         user=context.user,
                     )
                     await context.response_handler(embed)

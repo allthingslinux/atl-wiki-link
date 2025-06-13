@@ -130,7 +130,10 @@ class WikiEmbeds:
         )
         embed.add_field(
             name="🌐 Verify MediaWiki Account",
-            value=f"```\n{verification_url}\n```",
+            value=(
+                "🔒 **Do not share this link with anyone, including ATL staff.**\n"
+                f"```\n{verification_url}\n```"
+            ),
             inline=False,
         )
         embed.add_field(
@@ -139,8 +142,8 @@ class WikiEmbeds:
                 "1. You'll be redirected to the wiki's OAuth page\n"
                 "2. Login with your MediaWiki account\n"
                 "3. Authorize the bot to verify your identity\n"
-                "4. You'll be automatically granted the wiki editor role\n\n"
-                "**Link expires in 10 minutes.**"
+                "4. If you meet the [requirements](https://atl.wiki/Atl.wiki:Discord_Linking), you'll automatically receive the wiki editor role\n\n"
+                "**⏰ Link expires in 10 minutes.**\n"
             ),
             inline=False,
         )
@@ -150,7 +153,7 @@ class WikiEmbeds:
         )
         embed.add_field(
             name="🔒 Security Note",
-            value="This verification is secure and only grants us permission to see your username.",
+            value="This verification only grants us permission to see your username.",
             inline=False,
         )
         return embed
@@ -164,14 +167,14 @@ class WikiEmbeds:
             title="✅ Verification Complete!",
             description=(
                 f"Successfully linked **{user.display_name}** to MediaWiki account **{wiki_username}**.\n\n"
-                "🎉 You now have access to wiki editing privileges!\n"
-                "📝 You can start contributing to the wiki immediately."
+                "🎉 If you meet the requirement listed [here](https://atl.wiki/Atl.wiki:Discord_Linking) you have been granted Wiki Author!\n"
+                "📝 Thank you for contributing! You have gained access to VIP lounge and been granted extra permissions."
             ),
             color=EmbedColors.SUCCESS,
             timestamp=discord.utils.utcnow(),
         )
         embed.set_footer(
-            text=f"Welcome to the wiki team, {wiki_username}!",
+            text=f"Welcome to the wiki, {wiki_username}!",
             icon_url=user.display_avatar.url,
         )
         return embed

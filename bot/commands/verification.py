@@ -82,7 +82,7 @@ class VerificationCommands(commands.Cog):
             embed = WikiEmbeds.error(
                 "Permission Denied",
                 "You don't have permission to view verified users.\n\n"
-                "This command is restricted to administrators.",
+                "This command is restricted to wiki administrators.",
                 user=user,
             )
             await ctx.send(embed=embed, ephemeral=True)
