@@ -32,6 +32,58 @@ assert JWT_SECRET is not None  # JWT_SECRET must be set
 JWT_ALGORITHM = "HS256"
 JWT_EXP_DELTA_SECONDS = 600  # 10 minutes
 
+DARK_MODE_TEMPLATE = """
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>{{ title }}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{
+                background: #181a1b;
+                color: #e8e6e3;
+                font-family: 'Segoe UI', 'Arial', sans-serif;
+                margin: 0;
+                padding: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }}
+            .container {{
+                background: #23272a;
+                border-radius: 12px;
+                box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+                padding: 2.5rem 2rem;
+                max-width: 400px;
+                width: 100%;
+                text-align: center;
+            }}
+            h2 {{
+                margin-top: 0;
+                color: #8ec07c;
+                font-weight: 600;
+            }}
+            p {{
+                color: #e8e6e3;
+                margin-bottom: 0;
+            }}
+            @media (max-width: 500px) {{
+                .container {{
+                    padding: 1.5rem 0.5rem;
+                }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>{{ title }}</h2>
+            <p>{{ message|safe }}</p>
+        </div>
+    </body>
+</html>
+"""
+
 if not all(
     [
         CONSUMER_KEY,
@@ -90,15 +142,16 @@ def decode_jwt(token: str) -> Dict[str, Any]:
 
 
 def error_page(title: str, message: str):
-    return render_template_string(f"""
-    <html>
-        <head><title>{escape(title)}</title></head>
-        <body>
-            <h2>{escape(title)}</h2>
-            <p>{escape(message)}</p>
-        </body>
-    </html>
-    """)
+    contact_html = (
+        '<br><br>'
+        'Please report this error to atl.wiki staff '
+        '(<a href="https://atl.wiki/Atl.wiki:Contact" target="_blank" rel="noopener noreferrer">contact</a>).'
+    )
+    return render_template_string(
+        DARK_MODE_TEMPLATE,
+        title=escape(title),
+        message=escape(message).replace('\n', '<br>') + contact_html
+    )
 
 
 @app.route("/verify")
@@ -214,15 +267,11 @@ def callback():
         logging.exception("Database update failed")
         return error_page("Database Update Failed", str(e))
 
-    return render_template_string(f"""
-    <html>
-        <head><title>Verification Complete</title></head>
-        <body>
-            <h2>Verification Complete</h2>
-            <p>Welcome, {escape(username)}. You have linked your account successfully. You may close this tab</p>
-        </body>
-    </html>
-    """)
+    return render_template_string(
+        DARK_MODE_TEMPLATE,
+        title="Verification Complete",
+        message=f"Welcome, {escape(username)}.<br>You have linked your account successfully.<br><br>You may close this tab."
+    )
 
 
 if __name__ == "__main__":
