@@ -176,3 +176,49 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error removing verification: {e}")
             return False
+
+    def remove_verification_by_wiki_username(self, mediawiki_username: str) -> bool:
+        """Remove verification for a user by their MediaWiki username (case-insensitive)."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "DELETE FROM links WHERE mediawiki_username ILIKE %s",
+                        (mediawiki_username,),
+                    )
+                    deleted_count = cur.rowcount
+                    conn.commit()
+                    return deleted_count > 0
+        except Exception as e:
+            print(f"Error removing verification by wiki username: {e}")
+            return False
+
+    def get_mediawiki_username(self, discord_id: int) -> Optional[str]:
+        """Get the MediaWiki username for a given Discord user ID (returns as stored)."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT mediawiki_username FROM links WHERE discord_id = %s",
+                        (discord_id,),
+                    )
+                    row = cur.fetchone()
+                    return row[0] if row and row[0] else None
+        except Exception as e:
+            print(f"Error getting MediaWiki username: {e}")
+            return None
+
+    def get_discord_id(self, mediawiki_username: str) -> Optional[int]:
+        """Get the Discord user ID for a given MediaWiki username (case-insensitive)."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT discord_id FROM links WHERE mediawiki_username ILIKE %s",
+                        (mediawiki_username,),
+                    )
+                    row = cur.fetchone()
+                    return row[0] if row and row[0] else None
+        except Exception as e:
+            print(f"Error getting Discord ID: {e}")
+            return None
