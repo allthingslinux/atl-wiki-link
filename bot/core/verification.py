@@ -76,6 +76,16 @@ class VerificationService:
         """Get all verified users."""
         return self.db.get_verified_users()
 
+    async def remove_verification_by_wiki_username(self, mediawiki_username: str) -> bool:
+        """Remove verification for a user by their MediaWiki username."""
+        return self.db.remove_verification_by_wiki_username(mediawiki_username)
+
+    async def get_mediawiki_username(self, discord_id: int) -> Optional[str]:
+        return self.db.get_mediawiki_username(discord_id)
+
+    async def get_discord_id(self, mediawiki_username: str) -> Optional[int]:
+        return self.db.get_discord_id(mediawiki_username)
+
 
 class VerificationStateMachine:
     """State machine for handling verification flow."""
