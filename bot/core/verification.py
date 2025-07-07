@@ -4,6 +4,7 @@ import discord
 from typing import Optional, Union, Any, List
 from enum import Enum
 from dataclasses import dataclass
+import aiohttp
 
 from .config import Config
 from .database import DatabaseManager
@@ -85,6 +86,37 @@ class VerificationService:
 
     async def get_discord_id(self, mediawiki_username: str) -> Optional[int]:
         return self.db.get_discord_id(mediawiki_username)
+
+    async def is_user_autoconfirmed(self, mediawiki_username: str) -> bool:
+        """Check if a MediaWiki user is in the autoconfirmed group."""
+        api_url = getattr(self, 'mediawiki_api_url', None) or getattr(self.config, 'MEDIAWIKI_API_URL', None)
+        if not api_url:
+            raise ValueError("MediaWiki API URL not configured.")
+        params = {
+            'action': 'query',
+            'list': 'users',
+            'ususers': mediawiki_username,
+            'usprop': 'groups',
+            'format': 'json',
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, params=params) as resp:
+                data = await resp.json()
+                users = data.get('query', {}).get('users', [])
+                if not users:
+                    return False
+                groups = users[0].get('groups', [])
+                return 'autoconfirmed' in groups
+
+    async def grant_role_if_autoconfirmed(self, member, mediawiki_username: str, guild):
+        """Grant the wiki author role if the user is autoconfirmed."""
+        is_auto = await self.is_user_autoconfirmed(mediawiki_username)
+        if is_auto:
+            role = guild.get_role(Config.WIKI_AUTHOR_ROLE_ID)
+            if role and role not in member.roles:
+                await member.add_roles(role, reason="User became autoconfirmed on MediaWiki.")
+            return True
+        return False
 
 
 class VerificationStateMachine:
@@ -256,6 +288,22 @@ class VerificationStateMachine:
                 context.user, verification_link
             )
             await context.user.send(embed=verification_embed)
+
+            # After sending the link, check autoconfirmed status and grant role if eligible
+            discord_id = context.user.id
+            db = self.db
+            mw_username = db.get_mediawiki_username(discord_id)
+            if mw_username:
+                # Check autoconfirmed status
+                service = VerificationService(db)
+                is_auto = await service.is_user_autoconfirmed(mw_username)
+                if is_auto and hasattr(context.user, 'guild') and context.user.guild:
+                    guild = context.user.guild
+                    member = guild.get_member(discord_id)
+                    if member:
+                        role = guild.get_role(Config.WIKI_AUTHOR_ROLE_ID)
+                        if role and role not in member.roles:
+                            await member.add_roles(role, reason="User autoconfirmed at verification time.")
 
             log_verification("started", context.user.id, context.user.display_name)
             context.state = VerificationState.COMPLETED

@@ -42,7 +42,8 @@ This is a monorepo containing two main components:
 
 - **🔗 MediaWiki Integration**: OAuth-based verification with MediaWiki
 - **🤖 Discord Commands**: Easy-to-use slash commands for verification
-- **👥 Role Management**: Automatic role assignment for verified users
+- **👥 Role Management**: Automatic role assignment for users who are autoconfirmed on MediaWiki
+- **⏳ Delayed Role Granting**: Users who are not yet autoconfirmed are linked, and a background task will grant the role once they become autoconfirmed
 - **📊 Admin Tools**: User management
 - **🗄️ Database Persistence**: PostgreSQL for reliable data storage
 - **🐳 Docker Ready**: Full containerization with Docker Compose
@@ -150,6 +151,7 @@ atl-wiki-bot/
 │   ├── commands/           # Slash commands
 │   │   └── verification.py # Verification commands
 │   │   └── lookup.py       # Lookup commands
+│   │   └── verification.py# Verification logic
 │   ├── core/              # Core functionality
 │   │   ├── config.py      # Configuration management
 │   │   ├── database.py    # Database operations
@@ -174,7 +176,7 @@ atl-wiki-bot/
 
 ### User Commands (available to everyone)
 
-- `/verify` - Start MediaWiki account verification
+- `/verify` - Start MediaWiki account verification. **Note:** Only users in the MediaWiki autoconfirmed group will be granted the Discord role immediately. If you are not autoconfirmed, you will be linked, and the role will be granted automatically once you become autoconfirmed.
 - `/unverify` - Remove your own verification link
 - `/lookup` - Look up Discord user from MediaWiki username or vice versa
 
@@ -182,6 +184,13 @@ atl-wiki-bot/
 
 - `/unverify <user|mediawiki_username>` - Remove verification for any user by Discord or MediaWiki username
 - `/verified` - List all verified users
+
+## 🛠️ How Autoconfirmed Role Assignment Works
+
+- When you verify, the bot checks if your MediaWiki account is in the `autoconfirmed` group (this usually requires a few days and/or edits on the wiki).
+- If you are autoconfirmed, you are immediately granted the Discord role.
+- If you are not autoconfirmed, you are linked, but the role is not granted yet.
+- A background task runs periodically and checks all linked users who do not have the role. If you become autoconfirmed, the role is granted automatically.
 
 ## 🔧 Configuration
 
