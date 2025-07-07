@@ -43,7 +43,7 @@ This is a monorepo containing two main components:
 - **🔗 MediaWiki Integration**: OAuth-based verification with MediaWiki
 - **🤖 Discord Commands**: Easy-to-use slash commands for verification
 - **👥 Role Management**: Automatic role assignment for verified users
-- **📊 Admin Tools**: User management and verification statistics
+- **📊 Admin Tools**: User management
 - **🗄️ Database Persistence**: PostgreSQL for reliable data storage
 - **🐳 Docker Ready**: Full containerization with Docker Compose
 - **📝 Rich Logging**: Comprehensive logging with emoji indicators
@@ -149,6 +149,7 @@ atl-wiki-bot/
 ├── bot/                    # Discord Bot
 │   ├── commands/           # Slash commands
 │   │   └── verification.py # Verification commands
+│   │   └── lookup.py       # Lookup commands
 │   ├── core/              # Core functionality
 │   │   ├── config.py      # Configuration management
 │   │   ├── database.py    # Database operations
@@ -171,18 +172,16 @@ atl-wiki-bot/
 
 ## 🎯 Commands
 
-### User Commands
+### User Commands (available to everyone)
 
 - `/verify` - Start MediaWiki account verification
-- `/verify status` - Check your verification status
-- `/verify help` - Get help with verification
+- `/unverify` - Remove your own verification link
+- `/lookup` - Look up Discord user from MediaWiki username or vice versa
 
-### Admin Commands
+### Admin Commands (require allowed role)
 
-- `/verify user <user>` - Check another user's verification
-- `/verify stats` - View verification statistics
-- `/verify unlink <user>` - Unlink a user's verification
-- `/verify list [status]` - List verified/unverified users
+- `/unverify <user|mediawiki_username>` - Remove verification for any user by Discord or MediaWiki username
+- `/verified` - List all verified users
 
 ## 🔧 Configuration
 
