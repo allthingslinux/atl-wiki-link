@@ -26,7 +26,7 @@ CONSUMER_KEY = os.getenv("MW_CONSUMER_KEY")
 CONSUMER_SECRET = os.getenv("MW_CONSUMER_SECRET")
 MW_API_URL = os.getenv("MW_API_URL")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
-BASE_URL = os.getenv("MW_BASE_URL")
+MW_BASE_URL = os.getenv("MW_BASE_URL")
 
 JWT_SECRET = os.getenv("JWT_SECRET", app.secret_key)
 assert JWT_SECRET is not None  # JWT_SECRET must be set
@@ -93,17 +93,19 @@ if not all(
         CALLBACK_URL,
         app.secret_key,
         JWT_SECRET,
+        MW_BASE_URL
     ]
 ):
     raise RuntimeError("One or more required environment variables are missing.")
 
-assert JWT_SECRET is not None  # For type checker
+# For type checker
+assert JWT_SECRET is not None  
+assert MW_BASE_URL is not None 
+assert MW_API_URL is not None  
 
-assert MW_API_URL is not None  # For type checker
-
-request_token_url = f"{BASE_URL}/Special:OAuth/initiate"
-access_token_url = f"{BASE_URL}/Special:OAuth/token"
-authorize_url = f"{BASE_URL}/Special:OAuth/authorize"
+request_token_url = f"{MW_BASE_URL}/Special:OAuth/initiate"
+access_token_url = f"{MW_BASE_URL}/Special:OAuth/token"
+authorize_url = f"{MW_BASE_URL}/Special:OAuth/authorize"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logging.debug(f"Using CONSUMER_KEY: {CONSUMER_KEY}")
