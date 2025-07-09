@@ -89,7 +89,7 @@ class VerificationService:
 
     async def is_user_autoconfirmed(self, mediawiki_username: str) -> bool:
         """Check if a MediaWiki user is in the autoconfirmed group."""
-        api_url = getattr(self, 'mediawiki_api_url', None) or getattr(self.config, 'MEDIAWIKI_API_URL', None)
+        api_url = Config.MW_API_URL
         if not api_url:
             raise ValueError("MediaWiki API URL not configured.")
         params = {

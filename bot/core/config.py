@@ -18,6 +18,7 @@ class Config:
 
     # MediaWiki settings
     VERIFICATION_URL = os.getenv("VERIFICATION_URL")
+    MW_API_URL = os.getenv("MW_API_URL")
 
     # Role settings
     WIKI_AUTHOR_ROLE_ID = int(os.getenv("WIKI_AUTHOR_ROLE_ID", "0"))
@@ -38,6 +39,7 @@ class Config:
             ("DISCORD_TOKEN", cls.DISCORD_TOKEN),
             ("DATABASE_URL", cls.DATABASE_URL),
             ("VERIFICATION_URL", cls.VERIFICATION_URL),
+            ("MW_API_URL", cls.MW_API_URL),  # Add this line
         ]
 
         missing_vars = [name for name, value in required_vars if not value]
