@@ -26,6 +26,7 @@ CONSUMER_KEY = os.getenv("MW_CONSUMER_KEY")
 CONSUMER_SECRET = os.getenv("MW_CONSUMER_SECRET")
 MW_API_URL = os.getenv("MW_API_URL")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
+BASE_URL = os.getenv("MW_BASE_URL")
 
 JWT_SECRET = os.getenv("JWT_SECRET", app.secret_key)
 assert JWT_SECRET is not None  # JWT_SECRET must be set
@@ -99,7 +100,6 @@ if not all(
 assert JWT_SECRET is not None  # For type checker
 
 assert MW_API_URL is not None  # For type checker
-BASE_URL = MW_API_URL.removesuffix("/api.php")
 
 request_token_url = f"{BASE_URL}/Special:OAuth/initiate"
 access_token_url = f"{BASE_URL}/Special:OAuth/token"
