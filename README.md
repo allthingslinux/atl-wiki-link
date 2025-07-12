@@ -4,10 +4,10 @@ A Discord bot system that verifies Discord users against MediaWiki accounts usin
 
 ## 🏗️ Architecture
 
-This is a monorepo containing two main components:
+This is a monorepo containing three main components:
 
 - **Discord Bot** (`bot/`) - Handles Discord interactions and user verification
-- **Flask API** (`api/`) - Manages OAuth flow and MediaWiki integration  
+- **Flask API** (`api/`) - Manages OAuth flow and MediaWiki integration
 - **PostgreSQL Database** - Stores verification data and user links
 
 ```text
@@ -41,7 +41,7 @@ This is a monorepo containing two main components:
 ## ✨ Features
 
 - **🔗 MediaWiki Integration**: OAuth-based verification with MediaWiki
-- **🤖 Discord Commands**: Easy-to-use slash commands for verification
+- **🤖 Slash Commands**: Easy-to-use slash commands for verification
 - **👥 Role Management**: Automatic role assignment for users who are autoconfirmed on MediaWiki
 - **⏳ Delayed Role Granting**: Users who are not yet autoconfirmed are linked, and a background task will grant the role once they become autoconfirmed
 - **📊 Admin Tools**: User management
@@ -69,30 +69,6 @@ cp env.example .env
 ### 2. Configure Environment
 
 Edit `.env` with your credentials:
-
-```bash
-# Discord Configuration
-DISCORD_TOKEN=your_discord_bot_token_here
-WIKI_AUTHOR_ROLE_ID=123456789012345678
-ALLOWED_ROLE_IDS=123456789012345678,987654321098765432
-DISCORD_PREFIX="w$"
-
-# MediaWiki OAuth (get from Special:OAuthConsumerRegistration)
-MW_CONSUMER_KEY=your_mediawiki_consumer_key
-MW_CONSUMER_SECRET=your_mediawiki_consumer_secret
-MW_API_URL=https://your.wiki.org/api.php
-
-# API Security Keys (generate random secure strings)
-FLASK_SECRET_KEY=your_super_secret_flask_key_here
-JWT_SECRET=your_jwt_secret_key_here
-
-# API URLs (adjust for production)
-VERIFICATION_URL=http://localhost:5000/verify
-CALLBACK_URL=http://localhost:5000/verify/callback
-
-# Database URL (uses Docker service name 'db')
-DATABASE_URL=postgresql://wiki-link-user:password@db:5432/wiki-link-db
-```
 
 > **Note**: The database URL is automatically configured for Docker. Only change if using external database.
 
