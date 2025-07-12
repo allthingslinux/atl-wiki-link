@@ -99,9 +99,9 @@ if not all(
     raise RuntimeError("One or more required environment variables are missing.")
 
 # For type checker
-assert JWT_SECRET is not None  
-assert MW_BASE_URL is not None 
-assert MW_API_URL is not None  
+assert JWT_SECRET is not None
+assert MW_BASE_URL is not None
+assert MW_API_URL is not None
 
 request_token_url = f"{MW_BASE_URL}/Special:OAuth/initiate"
 access_token_url = f"{MW_BASE_URL}/Special:OAuth/token"
@@ -147,7 +147,7 @@ def error_page(title: str, message: str):
     contact_html = (
         '<br><br>'
         'Please report this error to atl.wiki staff '
-        '(<a href="https://atl.wiki/Atl.wiki:Contact" target="_blank" rel="noopener noreferrer">contact</a>).'
+        '(<a href="https://atl.wiki/ATL:Contact" target="_blank" rel="noopener noreferrer">contact</a>).'
     )
     return render_template_string(
         DARK_MODE_TEMPLATE,
