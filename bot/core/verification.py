@@ -158,7 +158,7 @@ class VerificationStateMachine:
                 "**Next steps:**\n"
                 "1. Check your DMs for the verification link\n"
                 "2. Click the link to verify your MediaWiki account\n"
-                "3. If you meet the [requirements](https://atl.wiki/Atl.wiki:Discord_Linking), you'll automatically receive the wiki editor role\n\n"
+                "3. If you meet the [requirements](https://atl.wiki/ATL:Discord_Linking), you'll automatically receive the wiki editor role\n\n"
                 "⏰ The link expires in 10 minutes.\n"
                 "🔒 **Do not share this link with anyone, including ATL staff.**",
                 user=context.user,
@@ -194,7 +194,7 @@ class VerificationStateMachine:
                         "Already Verified",
                         "Your Discord account is already linked to a MediaWiki account.\n\n"
                         "🔗 To unlink your account at anytime you can use `/unverify`.\n"
-                        "📝 If you are missing the role and meet the [requirements](https://atl.wiki/Atl.wiki:Discord_Linking), you can unverify and reverify to receive it.",
+                        "📝 If you are missing the role and meet the [requirements](https://atl.wiki/ATL:Discord_Linking), you can unverify and reverify to receive it.",
                         user=context.user,
                     )
                     await context.response_handler(embed)
