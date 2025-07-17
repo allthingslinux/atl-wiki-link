@@ -6,7 +6,7 @@ from .core.config import Config
 from .core.database import DatabaseManager
 from .core.tasks import BotTasks
 from .commands.verification import setup as setup_verification_commands
-
+from .commands.linker import setup as setup_autolinker
 
 class WikiBot(commands.Bot):
     """Main Discord bot class."""
@@ -44,7 +44,9 @@ class WikiBot(commands.Bot):
 
         # Load commands
         await setup_verification_commands(self)
-
+        
+        await setup_autolinker(self)
+        
         # Sync command tree
         await self.tree.sync()
         print("✅ Command tree synced")
