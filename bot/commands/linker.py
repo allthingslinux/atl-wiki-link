@@ -12,12 +12,12 @@ class AutoLinker(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        matches = re.findall(r"\[\[[^\n]+\]\]", message.content)
-        
-        links = []
-        
-        if (message.author.bot):
+        if message.author.bot:
             return
+
+        matches = re.findall(r"\[\[[^\n]+\]\]", message.content)
+
+        links = []
         
         if (len(matches) == 0):
             return
