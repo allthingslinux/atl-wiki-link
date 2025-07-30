@@ -132,7 +132,7 @@ class WikiEmbeds:
             name="🌐 Verify MediaWiki Account",
             value=(
                 "🔒 **Do not share this link with anyone, including ATL staff.**\n"
-                f"```\n{verification_url}\n```"
+                f"\n**__{verification_url}__**\n"
             ),
             inline=False,
         )
