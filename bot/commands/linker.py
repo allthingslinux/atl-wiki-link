@@ -23,14 +23,13 @@ class AutoLinker(commands.Cog):
             return
         
         for match in matches:
-            # i wish you could do re.sub(x, y, z).sub(x, y, z) but alas, the language forced my hand
             match = re.sub(r"\[\[", "", match)
             match = re.sub(r"\]\]", "", match)
             match_clean = re.sub(" ", "_", match)
             
-            links.append(f"[[[`{match}`]]](https://atl.wiki/{match_clean})")
+            links.append(f"[atl.wiki/{match}](https://atl.wiki/{match_clean})")
         
-        await message.reply(content=f"Link{'' if len(links) == 1 else 's'}: {', '.join(links)}")
+        await message.reply(content=f"{', '.join(links)}")
         
             
 
