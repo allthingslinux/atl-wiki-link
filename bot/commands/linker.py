@@ -22,7 +22,7 @@ class AutoLinker(commands.Cog):
         if (len(matches) == 0):
             return
 
-        matches = [match[i][0] for match in matches]
+        matches = [match[0] for match in matches]
         links = [f'[atl.wiki/{match}](https://atl.wiki/{match.replace(" ", "_")})' for match in matches]
         
         await message.reply(content=', '.join(links))
