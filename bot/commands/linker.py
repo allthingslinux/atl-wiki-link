@@ -4,6 +4,8 @@ from discord.ext import commands
 
 import re
 
+RE_WIKI_LINK_IN_MESSAGE = re.compile(r"\[\[([^\n\[\]#<|{}_�:][^\n\[\]#<|{}_�]*)\]\](?=([^`]|```([^`]|`{1,2}([^`]|$))+```|``([^`]|`([^`]|$))+``|`[^`]+`)*$)")
+
 class AutoLinker(commands.Cog):
     """Automatically reply to a message with links to atl.wiki articles if it contains a properly formatted wikilink"""
 
@@ -15,23 +17,14 @@ class AutoLinker(commands.Cog):
         if message.author.bot:
             return
 
-        matches = re.findall(r"\[\[[^\n]+\]\]", message.content)
+        matches = RE_WIKI_LINK_IN_MESSAGE.findall(message.content)
 
-        links = []
-        
         if (len(matches) == 0):
             return
+
+        links = [f'[atl.wiki/{match[0]}](https://atl.wiki/{match[0].replace(" ", "_")})' for match in matches]
         
-        for match in matches:
-            match = re.sub(r"\[\[", "", match)
-            match = re.sub(r"\]\]", "", match)
-            match_clean = re.sub(" ", "_", match)
-            
-            links.append(f"[atl.wiki/{match}](https://atl.wiki/{match_clean})")
-        
-        await message.reply(content=f"{', '.join(links)}")
-        
-            
+        await message.reply(content=', '.join(links))
 
 async def setup(bot: commands.Bot) -> None:
     """Set up the wikilinker cog."""
