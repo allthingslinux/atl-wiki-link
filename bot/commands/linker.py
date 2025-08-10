@@ -4,7 +4,7 @@ from discord.ext import commands
 
 import re
 
-RE_WIKI_LINK_IN_MESSAGE = re.compile(r"\[\[([^\n\[\]#<|{}_�:][^\n\[\]#<|{}�]*)\]\](?=([^`]|```([^`]|`{1,2}([^`]|$))+```|``([^`]|`([^`]|$))+``|`[^`]+`)*$)")
+RE_WIKI_LINK_IN_MESSAGE = re.compile(r"\[\[([^\n\[\]#<|{}_�:][^\n\[\]<|{}�]*?)\]\](?=([^`]|```([^`]|`{1,2}([^`]|$))+?```|``([^`]|`([^`]|$))+?``|`[^`]+?`)*$)")
 
 class AutoLinker(commands.Cog):
     """Automatically reply to a message with links to atl.wiki articles if it contains a properly formatted wikilink"""
