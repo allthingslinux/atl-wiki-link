@@ -509,14 +509,14 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "discord-py"
-version = "2.6.1"
+version = "2.6.2"
 description = "A Python wrapper for the Discord API"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "discord_py-2.6.1-py3-none-any.whl", hash = "sha256:afd91423170adc25b06871b33938ce5f858d20a8b0ca1a614cfd65fa7a74da6c"},
-    {file = "discord_py-2.6.1.tar.gz", hash = "sha256:0a30c9e4bc84d050183c5c214fd9fb2ccfaa4875f00f632629daa9e81c6acde2"},
+    {file = "discord_py-2.6.2-py3-none-any.whl", hash = "sha256:6b257b02ef1a6374a2ddc4cdbfcfa6edbf88674dddeef66800c5d9403b710a2e"},
+    {file = "discord_py-2.6.2.tar.gz", hash = "sha256:e3ac5b0353211c831f046a258f4e91c6745ecd544286d29868988ebf7a695d1d"},
 ]
 
 [package.dependencies]
