@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17.6
+    image: postgres:18.0
     container_name: wiki-link-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-wiki-link-user}
